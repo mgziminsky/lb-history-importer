@@ -1,20 +1,24 @@
 use std::{
+    error::Error,
     fmt::Display,
     fs::File,
     io::BufReader,
     path::PathBuf,
+    result::Result::Ok,
+    str::FromStr,
     thread,
     time::Duration,
 };
 
 use anyhow::{
     Context,
-    Ok,
     Result,
 };
 use chrono::{
     DateTime,
     Local,
+    NaiveDateTime,
+    TimeZone,
 };
 use clap::Parser;
 use listenbrainz::raw::{
@@ -43,11 +47,11 @@ struct Args {
     url: Option<String>,
 
     /// Only import tracks played before this date/time
-    #[arg(short, long, conflicts_with = "after")]
+    #[arg(short, long, value_parser = parse_optional_tz)]
     before: Option<DateTime<Local>>,
 
     /// Only import tracks played after this date/time
-    #[arg(short, long, conflicts_with = "before")]
+    #[arg(short, long, value_parser = parse_optional_tz)]
     after: Option<DateTime<Local>>,
 
     /// Minimum play time in seconds in order to import
@@ -55,12 +59,17 @@ struct Args {
     min_play_time: Option<u16>,
 
     /// How many listens to import per request
-    #[arg(long, default_value = "1000")]
+    #[arg(long, default_value_t = 1000)]
     batch_size: usize,
 
     /// One or more json files containing play history from a spotify data dump. eg: endsong_*.json or StreamingHistory*.json
     #[arg(required = true)]
     files: Vec<PathBuf>,
+}
+
+fn parse_optional_tz(dt: &str) -> Result<DateTime<Local>, impl Error> {
+    dt.parse()
+        .or_else(|_| NaiveDateTime::from_str(dt).map(|ndt| Local.from_local_datetime(&ndt).single().unwrap()))
 }
 
 fn print_err<E: Display>(e: E) {
@@ -69,6 +78,10 @@ fn print_err<E: Display>(e: E) {
 
 fn main() -> Result<()> {
     let args = Args::parse_from(wild::args());
+
+    #[cfg(debug_assertions)]
+    dbg!(&args);
+
     let client = args.url.map(Client::new_with_url).unwrap_or_else(Client::new);
 
     let token = args.token.as_hyphenated().to_string();
@@ -127,5 +140,5 @@ fn main() -> Result<()> {
         batch.clear();
     }
 
-    Ok(())
+    anyhow::Ok(())
 }
