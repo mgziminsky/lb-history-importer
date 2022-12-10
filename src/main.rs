@@ -120,23 +120,31 @@ fn main() -> Result<()> {
     let mut batch = Vec::with_capacity(args.batch_size);
     while tracks.peek().is_some() {
         batch.extend(tracks.by_ref().take(args.batch_size));
-        let resp = client.submit_listens(token.as_str(), SubmitListens {
-            listen_type: ListenType::Import,
-            payload: &batch,
-        })?;
-
-        total += batch.len();
-        println!("Imported {} listens | {total} total", batch.len());
+        let resp = client
+            .submit_listens(token.as_str(), SubmitListens {
+                listen_type: ListenType::Import,
+                payload: &batch,
+            })
+            .with_context(|| format!("Batch {total}-{}", total + batch.len()));
 
         #[cfg(debug_assertions)]
         dbg!(&resp);
 
-        if let Some(limit) = resp.rate_limit {
-            if limit.remaining == 0 {
-                println!("API rate limit reached; Will continue in {} seconds...", limit.reset_in);
-                thread::sleep(Duration::from_secs(limit.reset_in));
-            }
+        match resp {
+            Err(e) => print_err(e),
+            Ok(resp) => {
+                total += batch.len();
+                println!("Imported {} listens | {total} total", batch.len());
+
+                if let Some(limit) = resp.rate_limit {
+                    if limit.remaining == 0 {
+                        println!("API rate limit reached; Will continue in {} seconds...", limit.reset_in);
+                        thread::sleep(Duration::from_secs(limit.reset_in));
+                    }
+                }
+            },
         }
+
         batch.clear();
     }
 
