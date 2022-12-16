@@ -48,7 +48,7 @@ impl HistEntry {
     }
 }
 
-impl TryFrom<HistEntry> for Payload<String, String, String> {
+impl TryFrom<HistEntry> for Payload<String> {
     type Error = anyhow::Error;
 
     fn try_from(val: HistEntry) -> Result<Self, Self::Error> {

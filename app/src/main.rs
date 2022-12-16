@@ -55,8 +55,8 @@ struct Args {
     after: Option<DateTime<Local>>,
 
     /// Minimum play time in seconds in order to import
-    #[arg(long)]
-    min_play_time: Option<u16>,
+    #[arg(long, default_value_t = 30)]
+    min_play_time: u16,
 
     /// How many listens to import per request
     #[arg(long, default_value_t = 1000)]
@@ -89,7 +89,7 @@ fn main() -> Result<()> {
         return Err(listenbrainz::Error::InvalidToken.into());
     }
 
-    let min_play_ms = args.min_play_time.unwrap_or(0) as u32 * 1000;
+    let min_play_ms = args.min_play_time as u32 * 1000;
     let mut tracks = args
         .files
         .iter()

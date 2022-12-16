@@ -1,5 +1,5 @@
-# blank_lines_lower_bound = 1
 blank_lines_upper_bound = 2
+fn_single_line = true
 group_imports = "StdExternalCrate"
 imports_granularity = "Crate"
 imports_layout = "Vertical"
