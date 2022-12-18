@@ -1,15 +1,18 @@
 [package]
 name = "lb_importer_services"
-version = "0.1.0"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-lb_importer_core = { path = "../core", version = "0.1.0" }
-lb_importer_derive = { path = "../derive", version = "0.1.0" }
+lb_importer_core = { path = "../core" }
+lb_importer_derive = { path = "../derive" }
 
 chrono = { version = "0.4.23", features = ["serde"] }
-listenbrainz = "0.5.0"
+listenbrainz.workspace = true
 serde = "1.0.150"
 serde_json = "1.0.89"
+serde_with = "2.1.0"

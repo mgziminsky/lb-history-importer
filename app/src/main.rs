@@ -21,6 +21,13 @@ use chrono::{
     TimeZone,
 };
 use clap::Parser;
+use lb_importer_services::{
+    service::{
+        SpotifyListen,
+        SpotifyListenVec,
+    },
+    ListenData,
+};
 use listenbrainz::raw::{
     request::{
         ListenType,
@@ -31,8 +38,6 @@ use listenbrainz::raw::{
 };
 use uuid::Uuid;
 
-mod spotify_data;
-use spotify_data::HistEntry;
 
 /// Import play history from spotify data dump into ListenBrainz
 #[derive(Parser, Debug)]
@@ -100,17 +105,17 @@ fn main() -> Result<()> {
                 .map(|f| (BufReader::new(f), p))
                 .ok()
         })
-        .filter_map(|(f, p)| -> Option<Vec<HistEntry>> {
-            serde_json::from_reader(f)
+        .filter_map(|(f, p)| -> Option<Vec<SpotifyListen>> {
+            serde_json::from_reader::<_, SpotifyListenVec>(f)
                 .with_context(|| p.display().to_string())
                 .map_err(print_err)
+                .map(|v| v.into())
                 .ok()
         })
         .flatten()
-        .filter(|h| h.track.is_some() && h.artist.is_some())
         .filter(|h| h.ms_played >= min_play_ms)
-        .filter(|h| args.before.map(|dt| h.time() < dt).unwrap_or(true))
-        .filter(|h| args.after.map(|dt| dt < h.time()).unwrap_or(true))
+        .filter(|h| args.before.map(|dt| h.listened_at() < dt.timestamp()).unwrap_or(true))
+        .filter(|h| args.after.map(|dt| dt.timestamp() < h.listened_at()).unwrap_or(true))
         .map(Payload::try_from)
         .filter_map(Result::ok)
         .peekable();
