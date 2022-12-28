@@ -1,5 +1,6 @@
 [package]
 name = "lb-history-importer"
+description = "Import listen data from dump files to a listenbrainz compatible service"
 version.workspace = true
 edition.workspace = true
 

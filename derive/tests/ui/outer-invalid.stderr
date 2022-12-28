@@ -1,0 +1,5 @@
+error: Invalid field name; expected `track`, `artist`, or `release`
+ --> tests/ui/outer-invalid.rs:5:11
+  |
+5 | #[payload(invalid = other: String)]
+  |           ^^^^^^^

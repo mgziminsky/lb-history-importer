@@ -1,0 +1,11 @@
+error: Not allowed on multiple fields. Also present on 'track1'
+ --> tests/ui/field-multiple-with-same-attr.rs:7:5
+  |
+7 |     #[track]
+  |     ^^^^^^^^
+
+error: Not allowed on multiple fields. Also present on 'track2'
+ --> tests/ui/field-multiple-with-same-attr.rs:5:5
+  |
+5 |     #[track]
+  |     ^^^^^^^^

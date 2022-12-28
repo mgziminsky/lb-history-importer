@@ -1,0 +1,5 @@
+error: Not allowed on fields. Must be placed on outer struct
+ --> tests/ui/field-payload-disallowed.rs:5:5
+  |
+5 |     #[payload]
+  |     ^^^^^^^^^^

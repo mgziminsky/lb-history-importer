@@ -12,6 +12,9 @@ proc-macro = true
 [dependencies]
 lb_importer_core = { path = "../core" }
 
-darling = "0.14.2"
+proc-macro2 = "1"
 quote = "1"
-syn = "1"
+syn = { version = "*", features = ["full"] }
+
+[dev-dependencies]
+trybuild = "1"

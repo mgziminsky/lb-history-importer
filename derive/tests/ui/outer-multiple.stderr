@@ -1,0 +1,11 @@
+error: Not allowed on multiple fields. Also present on 'test'
+ --> tests/ui/outer-multiple.rs:5:11
+  |
+5 | #[payload(track = other: String)]
+  |           ^^^^^
+
+error: Not allowed on multiple fields. Also present on 'other'
+ --> tests/ui/outer-multiple.rs:4:11
+  |
+4 | #[payload(track = test: String)]
+  |           ^^^^^

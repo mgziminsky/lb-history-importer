@@ -51,7 +51,7 @@ pub struct SpotifyListen {
     pub ms_played: u32,
 }
 
-impl ListenData for SpotifyListen {
+impl ListenData<'_> for SpotifyListen {
     type MetaType = Info;
 
     #[inline]
