@@ -1,8 +1,6 @@
 use std::{
     error::Error,
     fmt::Display,
-    fs::File,
-    io::BufReader,
     path::PathBuf,
     result::Result::Ok,
     str::FromStr,
@@ -22,9 +20,10 @@ use chrono::{
 };
 use clap::Parser;
 use lb_importer_services::{
-    service::{
-        SpotifyListen,
-        SpotifyListenVec,
+    load_listens,
+    ImportData::{
+        ListenBrainz,
+        Spotify,
     },
     ListenData,
 };
@@ -67,7 +66,13 @@ struct Args {
     #[arg(long, default_value_t = 1000)]
     batch_size: usize,
 
-    /// One or more json files containing play history from a spotify data dump. eg: endsong_*.json or StreamingHistory*.json
+    /// One or more json files containing play history
+    ///
+    /// Expects file names to match the following patterns based on service source:
+    ///
+    ///     Spotify: endsong_\d+ | StreamingHistory\d+
+    ///
+    ///     ListenBrainz: \w+_lb-\d{4}-\d{2}-\d{2}
     #[arg(required = true)]
     files: Vec<PathBuf>,
 }
@@ -82,7 +87,7 @@ fn print_err<E: Display>(e: E) {
 }
 
 fn main() -> Result<()> {
-    let args = Args::parse_from(wild::args());
+    let args = Args::parse_from(wild::args_os());
 
     #[cfg(debug_assertions)]
     dbg!(&args);
@@ -94,30 +99,24 @@ fn main() -> Result<()> {
         return Err(listenbrainz::Error::InvalidToken.into());
     }
 
+    macro_rules! payload {
+        ($it:expr) => {
+            $it.filter(|ld| args.before.map(|dt| ld.listened_at() < dt.timestamp()).unwrap_or(true))
+                .filter(|ld| args.after.map(|dt| dt.timestamp() < ld.listened_at()).unwrap_or(true))
+                .map(Payload::from)
+                .collect::<Vec<_>>()
+        };
+    }
+
     let min_play_ms = args.min_play_time as u32 * 1000;
     let mut tracks = args
         .files
         .iter()
-        .filter_map(|p| {
-            File::open(p)
-                .with_context(|| p.display().to_string())
-                .map_err(print_err)
-                .map(|f| (BufReader::new(f), p))
-                .ok()
+        .filter_map(|p| load_listens(p).with_context(|| p.display().to_string()).map_err(print_err).ok())
+        .flat_map(|v| match v {
+            Spotify(sv) => payload!(sv.into_iter().filter(|h| h.ms_played >= min_play_ms)),
+            ListenBrainz(lv) => payload!(lv.into_iter()),
         })
-        .filter_map(|(f, p)| -> Option<Vec<SpotifyListen>> {
-            serde_json::from_reader::<_, SpotifyListenVec>(f)
-                .with_context(|| p.display().to_string())
-                .map_err(print_err)
-                .map(|v| v.into())
-                .ok()
-        })
-        .flatten()
-        .filter(|h| h.ms_played >= min_play_ms)
-        .filter(|h| args.before.map(|dt| h.listened_at() < dt.timestamp()).unwrap_or(true))
-        .filter(|h| args.after.map(|dt| dt.timestamp() < h.listened_at()).unwrap_or(true))
-        .map(Payload::try_from)
-        .filter_map(Result::ok)
         .peekable();
 
 

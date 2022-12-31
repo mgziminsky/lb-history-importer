@@ -13,16 +13,10 @@ use serde::{
 
 use crate::de::*;
 
+use super::ListenVec;
 
-/// Deserialization wrapper for a `Vec<SpotifyListen>` that will skip errors
-#[serde_with::serde_as]
-#[derive(Deserialize)]
-pub struct SpotifyListenVec(#[serde_as(as = "serde_with::VecSkipError<_>")] Vec<SpotifyListen>);
 
-impl From<SpotifyListenVec> for Vec<SpotifyListen> {
-    #[inline]
-    fn from(value: SpotifyListenVec) -> Self { value.0 }
-}
+pub type SpotifyListenVec = ListenVec<SpotifyListen>;
 
 /// Represents a single entry from a spotify history dump
 #[cfg_attr(test, derive(PartialEq, Eq))]

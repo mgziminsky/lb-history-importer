@@ -9,11 +9,11 @@ edition.workspace = true
 [dependencies]
 lb_importer_services = { path = "../services" }
 
-anyhow = "1.0.66"
+anyhow = "1"
 chrono = { version = "0.4.23", features = ["serde"] }
-clap = { version = "4.0.29", features = ["derive", "env"] }
+clap = { version = "4.0.32", features = ["derive", "env"] }
 listenbrainz.workspace = true
-serde = "1.0.149"
-serde_json = "1.0.89"
+serde = "1"
+serde_json = "1"
 uuid = { version = "1.2.2", features = ["serde"] }
-wild = "2.1.0"
+wild = "2"

@@ -33,6 +33,12 @@ const SIMPLE_SAMPLE: &str = r#"{
     "msPlayed" : 60265
 }"#;
 
+macro_rules! LIST_SAMPLE {
+    () => {
+        format!("[{0},{{}},{0},{1},{{}},{1}]", SIMPLE_SAMPLE, FULL_SAMPLE)
+    };
+}
+
 const EXPECTED_TRACK: &str = "Burn Brighter";
 const EXPECTED_ARTIST: &str = "Lansdowne";
 const EXPECTED_ALBUM: Option<&str> = Some("No Home but the Road");
@@ -68,4 +74,16 @@ fn test_de_full() {
 
     let full: SpotifyListen = serde_json::from_str(FULL_SAMPLE).expect("Failed to parse full entry");
     assert_eq!(full, expected);
+}
+
+#[test]
+fn test_de_list_safe() {
+    let list: SpotifyListenVec = serde_json::from_str(LIST_SAMPLE!().as_str()).expect("Failed to parse list");
+    assert_eq!(list.0.len(), 4);
+}
+
+#[test]
+#[should_panic(expected = "missing field")]
+fn test_de_list_fail() {
+    serde_json::from_str::<Vec<SpotifyListen>>(LIST_SAMPLE!().as_str()).expect("");
 }
