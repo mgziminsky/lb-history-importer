@@ -1,9 +1,9 @@
+#![feature(result_option_inspect)]
+
 use std::{
-    error::Error,
     fmt::Display,
     path::PathBuf,
     result::Result::Ok,
-    str::FromStr,
     thread,
     time::Duration,
 };
@@ -11,12 +11,6 @@ use std::{
 use anyhow::{
     Context,
     Result,
-};
-use chrono::{
-    DateTime,
-    Local,
-    NaiveDateTime,
-    TimeZone,
 };
 use clap::Parser;
 use lb_importer_services::{
@@ -35,6 +29,17 @@ use listenbrainz::raw::{
     },
     Client,
 };
+use time::{
+    format_description::{
+        well_known::Rfc3339,
+        FormatItem,
+    },
+    macros::format_description,
+    Date,
+    OffsetDateTime,
+    PrimitiveDateTime,
+    UtcOffset,
+};
 use uuid::Uuid;
 
 
@@ -51,12 +56,12 @@ struct Args {
     url: Option<String>,
 
     /// Only import tracks played before this date/time
-    #[arg(short, long, value_parser = parse_optional_tz)]
-    before: Option<DateTime<Local>>,
+    #[arg(short, long, value_parser = parse_datetime)]
+    before: Option<OffsetDateTime>,
 
     /// Only import tracks played after this date/time
-    #[arg(short, long, value_parser = parse_optional_tz)]
-    after: Option<DateTime<Local>>,
+    #[arg(short, long, value_parser = parse_datetime)]
+    after: Option<OffsetDateTime>,
 
     /// Minimum play time in seconds in order to import
     #[arg(long, default_value_t = 30)]
@@ -77,14 +82,36 @@ struct Args {
     files: Vec<PathBuf>,
 }
 
-fn parse_optional_tz(dt: &str) -> Result<DateTime<Local>, impl Error> {
-    dt.parse()
-        .or_else(|_| NaiveDateTime::from_str(dt).map(|ndt| Local.from_local_datetime(&ndt).single().unwrap()))
+fn parse_datetime(dt: &str) -> Result<OffsetDateTime> {
+    const FMTS_DT: &[&[FormatItem]] = &[
+        format_description!("[year]-[month]-[day] [hour]:[minute]:[second]"),
+        format_description!("[year]-[month]-[day] [hour]:[minute]"),
+        format_description!("[year]-[month]-[day] [hour]"),
+    ];
+    const FMTS_DATE: &[&[FormatItem]] = &[
+        format_description!("[year]-[month]-[day]"),
+    ];
+
+    let local_tz = UtcOffset::current_local_offset()?;
+    OffsetDateTime::parse(dt, &Rfc3339).or_else(|e| {
+        FMTS_DT
+            .iter()
+            .find_map(|fmt| PrimitiveDateTime::parse(dt, fmt).ok())
+            .or_else(|| {
+                FMTS_DATE
+                    .iter()
+                    .find_map(|fmt| Date::parse(dt, fmt).ok())
+                    .and_then(|d| d.with_hms(0, 0, 0).ok())
+            })
+            .map(|pdt| pdt.assume_offset(local_tz))
+            .ok_or(e.into())
+    })
 }
 
-fn print_err<E: Display>(e: E) {
+fn print_err(e: &impl Display) {
     eprintln!("{e:#}");
 }
+
 
 fn main() -> Result<()> {
     let args = Args::parse_from(wild::args_os());
@@ -101,8 +128,8 @@ fn main() -> Result<()> {
 
     macro_rules! payload {
         ($it:expr) => {
-            $it.filter(|ld| args.before.map(|dt| ld.listened_at() < dt.timestamp()).unwrap_or(true))
-                .filter(|ld| args.after.map(|dt| dt.timestamp() < ld.listened_at()).unwrap_or(true))
+            $it.filter(|ld| args.before.map(|dt| ld.listened_at() < dt.unix_timestamp()).unwrap_or(true))
+                .filter(|ld| args.after.map(|dt| dt.unix_timestamp() < ld.listened_at()).unwrap_or(true))
                 .map(Payload::from)
                 .collect::<Vec<_>>()
         };
@@ -112,7 +139,13 @@ fn main() -> Result<()> {
     let mut tracks = args
         .files
         .iter()
-        .filter_map(|p| load_listens(p).with_context(|| p.display().to_string()).map_err(print_err).ok())
+        .filter_map(|p| {
+            load_listens(p)
+                .inspect(|_| println!("Importing file '{}'", p.display()))
+                .with_context(|| p.display().to_string())
+                .inspect_err(print_err)
+                .ok()
+        })
         .flat_map(|v| match v {
             Spotify(sv) => payload!(sv.into_iter().filter(|h| h.ms_played >= min_play_ms)),
             ListenBrainz(lv) => payload!(lv.into_iter()),
@@ -135,7 +168,7 @@ fn main() -> Result<()> {
         dbg!(&resp);
 
         match resp {
-            Err(e) => print_err(e),
+            Err(e) => print_err(&e),
             Ok(resp) => {
                 total += batch.len();
                 println!("Imported {} listens | {total} total", batch.len());

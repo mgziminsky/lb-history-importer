@@ -20,7 +20,6 @@ use crate::service::{
     SpotifyListenVec,
 };
 
-mod de;
 pub mod service;
 
 

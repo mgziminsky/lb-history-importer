@@ -1,4 +1,4 @@
-use chrono::TimeZone;
+use time::macros::datetime;
 
 use super::*;
 
@@ -47,7 +47,7 @@ const EXPECTED_MS_PLAYED: u32 = 60265;
 #[test]
 fn test_de_simple() {
     let expected = SpotifyListen {
-        time: Utc.with_ymd_and_hms(2018, 7, 10, 6, 58, 0).unwrap(),
+        time: datetime!(2018-07-10 06:58 UTC),
         offline_time: None,
         track: EXPECTED_TRACK.to_owned(),
         artist: EXPECTED_ARTIST.to_owned(),
@@ -63,8 +63,8 @@ fn test_de_simple() {
 #[test]
 fn test_de_full() {
     let expected = SpotifyListen {
-        time: Utc.with_ymd_and_hms(2018, 7, 10, 6, 58, 55).unwrap(),
-        offline_time: Utc.timestamp_millis_opt(1531090963961).single(),
+        time: datetime!(2018-07-10 06:58:55 UTC),
+        offline_time: Some(1531090963),
         track: EXPECTED_TRACK.to_owned(),
         artist: EXPECTED_ARTIST.to_owned(),
         album: EXPECTED_ALBUM.map(str::to_owned),

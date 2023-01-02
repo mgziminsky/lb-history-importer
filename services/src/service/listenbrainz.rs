@@ -7,9 +7,7 @@ use serde::{
     Serialize,
 };
 
-use super::ListenVec;
-
-pub type LBListenVec = ListenVec<LBListen>;
+pub type LBListenVec = super::ListenVec<LBListen>;
 
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[derive(Debug, Deserialize, IntoPayload)]

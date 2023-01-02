@@ -1,33 +1,33 @@
 use std::borrow::Borrow;
 
-use chrono::{
-    DateTime,
-    Utc,
-};
 use lb_importer_core::ListenData;
 use lb_importer_derive::IntoPayload;
 use serde::{
     ser::SerializeStruct,
     Deserialize,
 };
+use time::{
+    format_description::{
+        self,
+        well_known::Rfc3339,
+    },
+    macros::format_description,
+    OffsetDateTime,
+    PrimitiveDateTime,
+};
 
-use crate::de::*;
+pub type SpotifyListenVec = super::ListenVec<SpotifyListen>;
 
-use super::ListenVec;
-
-
-pub type SpotifyListenVec = ListenVec<SpotifyListen>;
 
 /// Represents a single entry from a spotify history dump
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[derive(Debug, Deserialize, IntoPayload)]
 pub struct SpotifyListen {
-    #[serde(deserialize_with = "from_datetime_str")]
-    #[serde(alias = "endTime", alias = "ts")]
-    time: DateTime<Utc>,
+    #[serde(alias = "endTime", alias = "ts", deserialize_with = "parse_datetime")]
+    time: OffsetDateTime,
 
-    #[serde(alias = "offline_timestamp", default, with = "chrono::serde::ts_milliseconds_option")]
-    offline_time: Option<DateTime<Utc>>,
+    #[serde(alias = "offline_timestamp", default, deserialize_with = "parse_ms_to_sec")]
+    offline_time: Option<i64>,
 
     #[serde(alias = "trackName", alias = "master_metadata_track_name")]
     pub track: String,
@@ -49,12 +49,7 @@ impl ListenData<'_> for SpotifyListen {
     type MetaType = Info;
 
     #[inline]
-    fn listened_at(&self) -> i64 {
-        self.offline_time
-            .filter(|dt| dt.timestamp() > 0)
-            .unwrap_or(self.time)
-            .timestamp()
-    }
+    fn listened_at(&self) -> i64 { self.offline_time.filter(|&ts| ts > 100).unwrap_or_else(|| self.time.unix_timestamp()) }
 
     #[inline]
     fn track_name(&self) -> &str { self.track.borrow() }
@@ -97,6 +92,26 @@ impl serde::Serialize for Info {
         }
         state.end()
     }
+}
+
+
+fn parse_datetime<'de, D>(de: D) -> Result<OffsetDateTime, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    const SIMPLE_FMT: &[format_description::FormatItem] = format_description!("[year]-[month]-[day] [hour]:[minute]");
+
+    let val = String::deserialize(de)?;
+    OffsetDateTime::parse(&val, &Rfc3339)
+        .or_else(|_| PrimitiveDateTime::parse(&val, &SIMPLE_FMT).map(PrimitiveDateTime::assume_utc))
+        .map_err(serde::de::Error::custom)
+}
+
+fn parse_ms_to_sec<'de, D>(de: D) -> Result<Option<i64>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    Option::<i64>::deserialize(de).map(|o| o.map(|ts| ts / 1000))
 }
 
 #[cfg(test)]
