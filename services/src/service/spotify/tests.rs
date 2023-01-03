@@ -46,7 +46,7 @@ const EXPECTED_MS_PLAYED: u32 = 60265;
 
 #[test]
 fn test_de_simple() {
-    let expected = SpotifyListen {
+    let expected = Listen {
         time: datetime!(2018-07-10 06:58 UTC),
         offline_time: None,
         track: EXPECTED_TRACK.to_owned(),
@@ -56,15 +56,15 @@ fn test_de_simple() {
         ms_played: EXPECTED_MS_PLAYED,
     };
 
-    let simple: SpotifyListen = serde_json::from_str(SIMPLE_SAMPLE).expect("Failed to parse simple entry");
+    let simple: Listen = serde_json::from_str(SIMPLE_SAMPLE).expect("Failed to parse simple entry");
     assert_eq!(simple, expected);
 }
 
 #[test]
 fn test_de_full() {
-    let expected = SpotifyListen {
+    let expected = Listen {
         time: datetime!(2018-07-10 06:58:55 UTC),
-        offline_time: Some(1531090963),
+        offline_time: Some(1_531_090_963),
         track: EXPECTED_TRACK.to_owned(),
         artist: EXPECTED_ARTIST.to_owned(),
         album: EXPECTED_ALBUM.map(str::to_owned),
@@ -72,18 +72,18 @@ fn test_de_full() {
         ms_played: EXPECTED_MS_PLAYED,
     };
 
-    let full: SpotifyListen = serde_json::from_str(FULL_SAMPLE).expect("Failed to parse full entry");
+    let full: Listen = serde_json::from_str(FULL_SAMPLE).expect("Failed to parse full entry");
     assert_eq!(full, expected);
 }
 
 #[test]
 fn test_de_list_safe() {
-    let list: SpotifyListenVec = serde_json::from_str(LIST_SAMPLE!().as_str()).expect("Failed to parse list");
+    let list: ListenVec = serde_json::from_str(LIST_SAMPLE!().as_str()).expect("Failed to parse list");
     assert_eq!(list.0.len(), 4);
 }
 
 #[test]
 #[should_panic(expected = "missing field")]
 fn test_de_list_fail() {
-    serde_json::from_str::<Vec<SpotifyListen>>(LIST_SAMPLE!().as_str()).expect("");
+    serde_json::from_str::<Vec<Listen>>(LIST_SAMPLE!().as_str()).expect("");
 }

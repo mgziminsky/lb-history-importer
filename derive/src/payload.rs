@@ -74,7 +74,7 @@ pub(super) fn derive_payload(input: DeriveInput) -> Result<TokenStream> {
             }
         }
     } else {
-        Default::default()
+        TokenStream::default()
     };
 
     Ok(quote! {
@@ -119,7 +119,7 @@ impl<'f> PayloadFields<'f> {
     }
 
     fn try_assign(mut self, fta: HelperAttr, member: &'f dyn ToTokens, ty: &'f Type, source: Option<&'f dyn Spanned>) -> Result<Self> {
-        fn ptr_eq<A: ?Sized, B: ?Sized>(a: *const A, b: *const B) -> bool { std::ptr::eq(a as *const (), b as *const ()) }
+        fn ptr_eq<A: ?Sized, B: ?Sized>(a: *const A, b: *const B) -> bool { std::ptr::eq(a.cast::<()>(), b.cast::<()>()) }
 
         match self.assign(fta, member, ty, source) {
             Some(PayloadField {
@@ -127,7 +127,7 @@ impl<'f> PayloadFields<'f> {
                 source: prev_source,
                 ..
             }) => {
-                let span = source.map(Spanned::span).unwrap_or_else(Span::call_site);
+                let span = source.map_or_else(Span::call_site, Spanned::span);
                 Err(if ptr_eq(member, prev_mem) {
                     const MSG: &str = "Duplicate attribute";
                     let mut e = Error::new(span, MSG);

@@ -54,7 +54,7 @@ fn test_de() {
             data.insert("recording_msid".to_owned(), String("7407a60c-ba0e-4fcd-ba47-80194f002b20".to_owned()));
             data
         };
-        LBListen {
+        Listen {
             track_metadata: AdditionalInfo {
                 data: UserListensTrackMetadata {
                     artist_name: "The Cab".to_owned(),
@@ -68,11 +68,11 @@ fn test_de() {
                     artist_mbids: vec!["91f7a868-d82e-4cfb-9cd9-a2ffd7faac25".to_owned()],
                 },
             },
-            listened_at: 1669318360,
+            listened_at: 1_669_318_360,
         }
     };
 
-    let listen: LBListen = serde_json::from_str(SAMPLE).expect("Failed to parse listen");
+    let listen: Listen = serde_json::from_str(SAMPLE).expect("Failed to parse listen");
     assert_eq!(listen, expected);
 }
 

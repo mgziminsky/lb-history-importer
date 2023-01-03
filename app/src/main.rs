@@ -43,7 +43,7 @@ use time::{
 use uuid::Uuid;
 
 
-/// Import play history from spotify data dump into ListenBrainz
+/// Import play history from a history dump into a `ListenBrainz` instance
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
@@ -119,7 +119,7 @@ fn main() -> Result<()> {
     #[cfg(debug_assertions)]
     dbg!(&args);
 
-    let client = args.url.map(Client::new_with_url).unwrap_or_else(Client::new);
+    let client = args.url.map_or_else(Client::new, Client::new_with_url);
 
     let token = args.token.as_hyphenated().to_string();
     if !client.validate_token(token.as_str())?.valid {
@@ -135,7 +135,7 @@ fn main() -> Result<()> {
         };
     }
 
-    let min_play_ms = args.min_play_time as u32 * 1000;
+    let min_play_ms = u32::from(args.min_play_time) * 1000;
     let mut tracks = args
         .files
         .iter()

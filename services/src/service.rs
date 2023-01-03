@@ -1,16 +1,11 @@
-use std::{
-    vec::IntoIter,
-};
+use std::vec::IntoIter;
 
 use ::listenbrainz::raw::request::Payload;
 use serde::Deserialize;
 use serde_json::Value;
 
-mod spotify;
-pub use spotify::*;
-
-mod listenbrainz;
-pub use self::listenbrainz::*;
+pub mod listenbrainz;
+pub mod spotify;
 
 
 fn additional_info<T: serde::Serialize>(data: &T) -> Option<serde_json::Map<String, Value>> {
@@ -28,7 +23,7 @@ fn additional_info<T: serde::Serialize>(data: &T) -> Option<serde_json::Map<Stri
 /// Deserialization wrapper for a `Vec<_>` that will skip errors
 #[serde_with::serde_as]
 #[derive(Deserialize)]
-pub struct ListenVec<T: PayloadT>(#[serde_as(as = "serde_with::VecSkipError<_>")]Vec<T>);
+pub struct ListenVec<T: PayloadT>(#[serde_as(as = "serde_with::VecSkipError<_>")] Vec<T>);
 impl<T: PayloadT> From<ListenVec<T>> for Vec<T> {
     #[inline]
     fn from(value: ListenVec<T>) -> Self { value.0 }
@@ -37,6 +32,7 @@ impl<T: PayloadT> IntoIterator for ListenVec<T> {
     type IntoIter = IntoIter<Self::Item>;
     type Item = T;
 
+    #[inline]
     fn into_iter(self) -> Self::IntoIter { self.0.into_iter() }
 }
 

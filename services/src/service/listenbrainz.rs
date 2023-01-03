@@ -7,14 +7,14 @@ use serde::{
     Serialize,
 };
 
-pub type LBListenVec = super::ListenVec<LBListen>;
+pub type ListenVec = super::ListenVec<Listen>;
 
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[derive(Debug, Deserialize, IntoPayload)]
 #[payload(track = track_metadata.data.track_name: String)]
 #[payload(artist = track_metadata.data.artist_name: String)]
 #[payload(release = track_metadata.data.release_name: String)]
-pub struct LBListen {
+pub struct Listen {
     track_metadata: AdditionalInfo,
     listened_at: i64,
 }
@@ -48,7 +48,7 @@ impl Serialize for AdditionalInfo {
     }
 }
 
-impl<'l> ListenData<'l> for LBListen {
+impl<'l> ListenData<'l> for Listen {
     type MetaType = &'l AdditionalInfo;
 
     fn listened_at(&self) -> i64 { self.listened_at }

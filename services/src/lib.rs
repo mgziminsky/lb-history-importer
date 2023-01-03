@@ -16,8 +16,8 @@ pub use lb_importer_core::*;
 use regex::Regex;
 
 use crate::service::{
-    LBListenVec,
-    SpotifyListenVec,
+    listenbrainz::ListenVec as LBListenVec,
+    spotify::ListenVec as SpotifyListenVec,
 };
 
 pub mod service;
@@ -28,6 +28,12 @@ pub enum ImportData {
     ListenBrainz(LBListenVec),
 }
 
+/// Attempts to deserialize the file at `path` based on file name
+///
+/// # Errors
+///
+/// This function will return an error if deserialization encounters an error,
+/// or the file name is not a recognized pattern.
 pub fn load_listens(path: &Path) -> Result<ImportData> {
     const ERR_MSG: &str = "Unrecognized file name";
     static SPOTIFY_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r#"^(endsong_|StreamingHistory)\d+\b"#).unwrap());

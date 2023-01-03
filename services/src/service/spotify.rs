@@ -16,13 +16,13 @@ use time::{
     PrimitiveDateTime,
 };
 
-pub type SpotifyListenVec = super::ListenVec<SpotifyListen>;
+pub type ListenVec = super::ListenVec<Listen>;
 
 
 /// Represents a single entry from a spotify history dump
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[derive(Debug, Deserialize, IntoPayload)]
-pub struct SpotifyListen {
+pub struct Listen {
     #[serde(alias = "endTime", alias = "ts", deserialize_with = "parse_datetime")]
     time: OffsetDateTime,
 
@@ -45,7 +45,7 @@ pub struct SpotifyListen {
     pub ms_played: u32,
 }
 
-impl ListenData<'_> for SpotifyListen {
+impl ListenData<'_> for Listen {
     type MetaType = Info;
 
     #[inline]
