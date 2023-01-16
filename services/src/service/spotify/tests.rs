@@ -54,6 +54,8 @@ fn test_de_simple() {
         album: None,
         spotify_track_uri: None,
         ms_played: EXPECTED_MS_PLAYED,
+        reason_start: None,
+        reason_end: None,
     };
 
     let simple: Listen = serde_json::from_str(SIMPLE_SAMPLE).expect("Failed to parse simple entry");
@@ -70,6 +72,8 @@ fn test_de_full() {
         album: EXPECTED_ALBUM.map(str::to_owned),
         spotify_track_uri: Some("spotify:track:6BUMVGOnIeOIE6YetJGGDT".to_owned()),
         ms_played: EXPECTED_MS_PLAYED,
+        reason_start: Some("trackdone".to_owned()),
+        reason_end: Some("fwdbtn".to_owned()),
     };
 
     let full: Listen = serde_json::from_str(FULL_SAMPLE).expect("Failed to parse full entry");

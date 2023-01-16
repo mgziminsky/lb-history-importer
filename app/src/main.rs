@@ -2,8 +2,8 @@
 
 use std::{
     fmt::Display,
-    path::PathBuf,
-    result::Result::Ok,
+    fs::File,
+    io::BufReader,
     thread,
     time::Duration,
 };
@@ -14,104 +14,36 @@ use anyhow::{
 };
 use clap::Parser;
 use lb_importer_services::{
-    load_listens,
-    ImportData::{
-        ListenBrainz,
-        Spotify,
-    },
+    load_listenbrainz,
+    load_spotify,
+    service::spotify::Listen,
     ListenData,
 };
 use listenbrainz::raw::{
     request::{
         ListenType,
         Payload,
+        StrType,
         SubmitListens,
     },
     Client,
 };
-use time::{
-    format_description::{
-        well_known::Rfc3339,
-        FormatItem,
+
+use crate::args::{
+    Args,
+    Service::{
+        ListenBrainz,
+        Spotify,
     },
-    macros::format_description,
-    Date,
-    OffsetDateTime,
-    PrimitiveDateTime,
-    UtcOffset,
+    SpotifyArgs,
 };
-use uuid::Uuid;
 
+mod args;
 
-/// Import play history from a history dump into a `ListenBrainz` instance
-#[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None)]
-struct Args {
-    /// ListenBrainz API token
-    #[arg(short, long, env = "LISTENBRAINZ_TOKEN")]
-    token: Uuid,
-
-    /// Url of the listenbrainz compatible API to import into
-    #[arg(short, long)]
-    url: Option<String>,
-
-    /// Only import tracks played before this date/time
-    #[arg(short, long, value_parser = parse_datetime)]
-    before: Option<OffsetDateTime>,
-
-    /// Only import tracks played after this date/time
-    #[arg(short, long, value_parser = parse_datetime)]
-    after: Option<OffsetDateTime>,
-
-    /// Minimum play time in seconds in order to import
-    #[arg(long, default_value_t = 30)]
-    min_play_time: u16,
-
-    /// How many listens to import per request
-    #[arg(long, default_value_t = 1000)]
-    batch_size: usize,
-
-    /// One or more json files containing play history
-    ///
-    /// Expects file names to match the following patterns based on service source:
-    ///
-    ///     Spotify: endsong_\d+ | StreamingHistory\d+
-    ///
-    ///     ListenBrainz: \w+_lb-\d{4}-\d{2}-\d{2}
-    #[arg(required = true)]
-    files: Vec<PathBuf>,
-}
-
-fn parse_datetime(dt: &str) -> Result<OffsetDateTime> {
-    const FMTS_DT: &[&[FormatItem]] = &[
-        format_description!("[year]-[month]-[day] [hour]:[minute]:[second]"),
-        format_description!("[year]-[month]-[day] [hour]:[minute]"),
-        format_description!("[year]-[month]-[day] [hour]"),
-    ];
-    const FMTS_DATE: &[&[FormatItem]] = &[
-        format_description!("[year]-[month]-[day]"),
-    ];
-
-    let local_tz = UtcOffset::current_local_offset()?;
-    OffsetDateTime::parse(dt, &Rfc3339).or_else(|e| {
-        FMTS_DT
-            .iter()
-            .find_map(|fmt| PrimitiveDateTime::parse(dt, fmt).ok())
-            .or_else(|| {
-                FMTS_DATE
-                    .iter()
-                    .find_map(|fmt| Date::parse(dt, fmt).ok())
-                    .and_then(|d| d.with_hms(0, 0, 0).ok())
-            })
-            .map(|pdt| pdt.assume_offset(local_tz))
-            .ok_or(e.into())
-    })
-}
 
 fn print_err(e: &impl Display) {
     eprintln!("{e:#}");
 }
-
 
 fn main() -> Result<()> {
     let args = Args::parse_from(wild::args_os());
@@ -126,39 +58,88 @@ fn main() -> Result<()> {
         return Err(listenbrainz::Error::InvalidToken.into());
     }
 
-    macro_rules! payload {
-        ($it:expr) => {
-            $it.filter(|ld| args.before.map(|dt| ld.listened_at() < dt.unix_timestamp()).unwrap_or(true))
+    let files = args.files.iter().filter_map(|p| {
+        File::open(p)
+            .map(BufReader::new)
+            .inspect(|_| println!("Importing file '{}'", p.display()))
+            .with_context(|| p.display().to_string())
+            .inspect_err(print_err)
+            .ok()
+    });
+
+    macro_rules! filtered {
+        ($load:expr) => {
+            files
+                .filter_map(|f| $load(f).inspect_err(print_err).ok())
+                .flatten()
+                .filter(|ld| args.before.map(|dt| ld.listened_at() < dt.unix_timestamp()).unwrap_or(true))
                 .filter(|ld| args.after.map(|dt| dt.unix_timestamp() < ld.listened_at()).unwrap_or(true))
-                .map(Payload::from)
-                .collect::<Vec<_>>()
         };
     }
+    macro_rules! submit {
+        ($it:expr) => {
+            submit($it, args.batch_size, &client, &token);
+        };
+    }
+    match args.service {
+        ListenBrainz => {
+            submit!(filtered!(load_listenbrainz));
+        },
+        Spotify(SpotifyArgs { min_play_time }) => {
+            let mut listens: Vec<_> = filtered!(load_spotify)
+                .filter(|l| l.ms_played >= u32::from(min_play_time * 1000))
+                .collect();
+            listens.sort_unstable_by_key(ListenData::listened_at);
 
-    let min_play_ms = u32::from(args.min_play_time) * 1000;
-    let mut tracks = args
-        .files
-        .iter()
-        .filter_map(|p| {
-            load_listens(p)
-                .inspect(|_| println!("Importing file '{}'", p.display()))
-                .with_context(|| p.display().to_string())
-                .inspect_err(print_err)
-                .ok()
-        })
-        .flat_map(|v| match v {
-            Spotify(sv) => payload!(sv.into_iter().filter(|h| h.ms_played >= min_play_ms)),
-            ListenBrainz(lv) => payload!(lv.into_iter()),
-        })
-        .peekable();
+            let listens = dedup_spotify(&listens, u64::from(min_play_time));
+
+            submit!(listens.into_iter());
+        },
+    }
+
+    anyhow::Ok(())
+}
+
+fn dedup_spotify(listens: &Vec<Listen>, time_threshold: u64) -> Vec<&Listen> {
+    // const ALL_REASONS: [&str; 13] = ["appload","backbtn","clickrow","endplay","fwdbtn","logout","playbtn","remote","trackdone","trackerror","unexpected-exit","unexpected-exit-while-paused","unknown"];
+    const SKIP_REASONS: [&str; 4] = ["logout", "remote", "trackerror", "unknown"];
+    fn is_skip_reason(re: &Option<String>) -> bool {
+        re.as_ref()
+            .map_or(false, |re| re.starts_with("unexpected-") || SKIP_REASONS.iter().any(|&sr| re == sr))
+    }
+
+    listens.iter().rev().fold(Vec::with_capacity(listens.len()), |mut acc, l| {
+        if let Some(&prev) = acc.last() {
+            if prev.spotify_track_uri != l.spotify_track_uri
+                || !(is_skip_reason(&l.reason_end) || prev.listened_at().abs_diff(l.listened_at()) <= time_threshold)
+            {
+                acc.push(l);
+            } else {
+                eprintln!("Ignoring duplicate listen for `{}` by `{}`", l.track_name(), l.artist_name());
+                #[cfg(debug_assertions)]
+                dbg!(l);
+            }
+        } else {
+            acc.push(l);
+        }
+        acc
+    })
+}
 
 
+fn submit<T, A, R>(listens: impl Iterator<Item = impl Into<Payload<T, A, R>>>, batch_size: usize, client: &Client, token: &str)
+where
+    T: StrType,
+    A: StrType,
+    R: StrType,
+{
     let mut total = 0usize;
-    let mut batch = Vec::with_capacity(args.batch_size);
-    while tracks.peek().is_some() {
-        batch.extend(tracks.by_ref().take(args.batch_size));
+    let mut batch = Vec::with_capacity(batch_size);
+    let mut listens = listens.map(Into::into).peekable();
+    while listens.peek().is_some() {
+        batch.extend(listens.by_ref().take(batch_size));
         let resp = client
-            .submit_listens(token.as_str(), SubmitListens {
+            .submit_listens(token, SubmitListens {
                 listen_type: ListenType::Import,
                 payload: &batch,
             })
@@ -184,6 +165,4 @@ fn main() -> Result<()> {
 
         batch.clear();
     }
-
-    anyhow::Ok(())
 }

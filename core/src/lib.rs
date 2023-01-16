@@ -1,13 +1,14 @@
-pub trait ListenData<'l> {
-    type MetaType: serde::Serialize;
 
-    fn listened_at(&'l self) -> i64;
+pub trait ListenData {
+    type MetaType<'m>: serde::Serialize where Self: 'm;
 
-    fn track_name(&'l self) -> &str;
-    fn artist_name(&'l self) -> &str;
+    fn listened_at(&self) -> i64;
 
-    fn release_name(&'l self) -> Option<&str> { None }
+    fn track_name(&self) -> &str;
+    fn artist_name(&self) -> &str;
 
-    fn track_metadata(&'l self) -> Option<Self::MetaType> { None }
+    fn release_name(&self) -> Option<&str> { None }
+
+    fn track_metadata(&self) -> Option<Self::MetaType<'_>> { None }
 }
-pub trait IntoPayloadDerive: for<'a> ListenData<'a> {}
+pub trait IntoPayloadDerive: ListenData {}

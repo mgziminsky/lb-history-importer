@@ -39,14 +39,17 @@ pub struct Listen {
     #[serde(alias = "master_metadata_album_album_name")]
     pub album: Option<String>,
 
+    pub reason_start: Option<String>,
+    pub reason_end: Option<String>,
+
     pub spotify_track_uri: Option<String>,
 
     #[serde(alias = "msPlayed", alias = "ms_played")]
     pub ms_played: u32,
 }
 
-impl ListenData<'_> for Listen {
-    type MetaType = Info;
+impl ListenData for Listen {
+    type MetaType<'m> = Info;
 
     #[inline]
     fn listened_at(&self) -> i64 { self.offline_time.filter(|&ts| ts > 100).unwrap_or_else(|| self.time.unix_timestamp()) }
@@ -61,13 +64,13 @@ impl ListenData<'_> for Listen {
     fn release_name(&self) -> Option<&str> { self.album.as_deref() }
 
     #[inline]
-    fn track_metadata(&self) -> Option<Info> {
+    fn track_metadata(&self) -> Option<Self::MetaType<'_>> {
         Some(Info {
             spotify_id: self
                 .spotify_track_uri
                 .as_ref()
                 .and_then(|uri| uri.rsplit_once(':'))
-                .map(|(_, id)| format!("https://open.spotify.com/tracks/{id}")),
+                .map(|(_, id)| format!("https://open.spotify.com/track/{id}")),
         })
     }
 }

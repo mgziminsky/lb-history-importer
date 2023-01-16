@@ -48,18 +48,18 @@ impl Serialize for AdditionalInfo {
     }
 }
 
-impl<'l> ListenData<'l> for Listen {
-    type MetaType = &'l AdditionalInfo;
+impl ListenData for Listen {
+    type MetaType<'m> = &'m AdditionalInfo;
 
     fn listened_at(&self) -> i64 { self.listened_at }
 
-    fn track_name(&'l self) -> &str { self.track_metadata.data.track_name.as_str() }
+    fn track_name(&self) -> &str { self.track_metadata.data.track_name.as_str() }
 
-    fn artist_name(&'l self) -> &str { self.track_metadata.data.artist_name.as_str() }
+    fn artist_name(&self) -> &str { self.track_metadata.data.artist_name.as_str() }
 
-    fn release_name(&'l self) -> Option<&str> { self.track_metadata.data.release_name.as_deref() }
+    fn release_name(&self) -> Option<&str> { self.track_metadata.data.release_name.as_deref() }
 
-    fn track_metadata(&'l self) -> Option<Self::MetaType> { Some(&self.track_metadata) }
+    fn track_metadata(&self) -> Option<Self::MetaType<'_>> { Some(&self.track_metadata) }
 }
 
 
