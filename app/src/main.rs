@@ -28,6 +28,10 @@ use listenbrainz::raw::{
     },
     Client,
 };
+use time::{
+    format_description::well_known::Rfc3339,
+    OffsetDateTime,
+};
 
 use crate::args::{
     Args,
@@ -133,7 +137,11 @@ where
     A: StrType,
     R: StrType,
 {
-    let mut total = 0usize;
+    #[rustfmt::skip]
+    #[derive(Default)]
+    struct Counts { total: usize, success: usize, fail: usize }
+
+    let mut counts = Counts::default();
     let mut batch = Vec::with_capacity(batch_size);
     let mut listens = listens.map(Into::into).peekable();
     while listens.peek().is_some() {
@@ -143,16 +151,30 @@ where
                 listen_type: ListenType::Import,
                 payload: &batch,
             })
-            .with_context(|| format!("Batch {total}-{}", total + batch.len()));
+            .with_context(|| format!("Batch {}-{}", counts.total, counts.total + batch.len()));
+        counts.total += batch.len();
 
         #[cfg(debug_assertions)]
         dbg!(&resp);
 
         match resp {
-            Err(e) => print_err(&e),
+            Err(e) => {
+                counts.fail += batch.len();
+                print_err(&e);
+
+                macro_rules! dt {
+                    ($p:expr) => {
+                        $p.and_then(|p| p.listened_at)
+                            .and_then(|ts| OffsetDateTime::from_unix_timestamp(ts).ok())
+                            .and_then(|dt| dt.format(&Rfc3339).ok())
+                            .expect("Payload should always have valid listened_at")
+                    };
+                }
+                print_err(&format!("> Rerun batch using: --after {} --before {}", dt!(batch.last()), dt!(batch.first())));
+            },
             Ok(resp) => {
-                total += batch.len();
-                println!("Imported {} listens | {total} total", batch.len());
+                counts.success += batch.len();
+                println!("Imported {} listens | Succeeded: {}, Failed: {}, Total: {}", batch.len(), counts.success, counts.fail, counts.total);
 
                 if let Some(limit) = resp.rate_limit {
                     if limit.remaining == 0 {

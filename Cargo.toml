@@ -7,13 +7,13 @@ members = [
 ]
 
 [workspace.package]
-version = "0.2.0"
+version = "0.2.1"
 authors = ["Michael Ziminsky (Z)"]
 edition = "2021"
 license = "LGPL-3.0-or-later"
 
 [workspace.dependencies]
-listenbrainz = "0.5.0"
+listenbrainz = "0.6.0"
 
 [patch.crates-io]
 listenbrainz = { path = "../listenbrainz-rs" }

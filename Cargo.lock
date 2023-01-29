@@ -95,9 +95,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.1.1"
+version = "4.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4ec7a4128863c188deefe750ac1d1dfe66c236909f845af04beed823638dc1b2"
+checksum = "f13b9c79b5d1dd500d20ef541215a6423c75829ef43117e1b4d17fd8af0b5d76"
 dependencies = [
  "bitflags",
  "clap_derive",
@@ -463,7 +463,7 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
 name = "lb-history-importer"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "anyhow",
  "clap",
@@ -496,7 +496,7 @@ dependencies = [
 
 [[package]]
 name = "lb_importer_services"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "anyhow",
  "lb_importer_core",
@@ -531,7 +531,7 @@ checksum = "f051f77a7c8e6957c0696eac88f26b0117e54f52d3fc682ab19397a8812846a4"
 
 [[package]]
 name = "listenbrainz"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "attohttpc",
  "serde",

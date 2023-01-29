@@ -1,4 +1,6 @@
 blank_lines_upper_bound = 2
+chain_width = 80
+fn_call_width = 125
 fn_single_line = true
 group_imports = "StdExternalCrate"
 imports_granularity = "Crate"
