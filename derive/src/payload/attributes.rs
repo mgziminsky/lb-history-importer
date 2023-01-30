@@ -53,8 +53,7 @@ pub(super) struct PayloadAttr {
 impl Parse for PayloadAttr {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let id: Ident = input.parse()?;
-        let field_type =
-            HelperAttr::try_from(&id).map_err(|_| syn::Error::new(id.span(), "Invalid field name; expected `track`, `artist`, or `release`"))?;
+        let field_type = HelperAttr::try_from(&id).map_err(|_| syn::Error::new(id.span(), "Invalid field name; expected `track`, `artist`, or `release`"))?;
 
         Ok(PayloadAttr {
             field_type,
@@ -75,7 +74,7 @@ pub(super) fn parse(attrs: &[Attribute]) -> syn::Result<Vec<PayloadAttr>> {
 }
 
 pub(super) fn process(attrs: &[PayloadAttr]) -> syn::Result<PayloadFields<'_>> {
-    attrs.iter().try_fold(PayloadFields::default(), |pf, a| {
-        pf.try_assign(a.field_type, &a.value.expr, &a.value.ty, Some(&a.id))
-    })
+    attrs
+        .iter()
+        .try_fold(PayloadFields::default(), |pf, a| pf.try_assign(a.field_type, &a.value.expr, &a.value.ty, Some(&a.id)))
 }

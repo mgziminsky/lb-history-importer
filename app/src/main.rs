@@ -90,9 +90,7 @@ fn main() -> Result<()> {
             submit!(filtered!(load_listenbrainz));
         },
         Spotify(SpotifyArgs { min_play_time }) => {
-            let mut listens: Vec<_> = filtered!(load_spotify)
-                .filter(|l| l.ms_played >= u32::from(min_play_time * 1000))
-                .collect();
+            let mut listens: Vec<_> = filtered!(load_spotify).filter(|l| l.ms_played >= u32::from(min_play_time * 1000)).collect();
             listens.sort_unstable_by_key(ListenData::listened_at);
 
             let listens = dedup_spotify(&listens, u64::from(min_play_time));

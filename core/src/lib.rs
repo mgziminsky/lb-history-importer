@@ -1,6 +1,7 @@
-
 pub trait ListenData {
-    type MetaType<'m>: serde::Serialize where Self: 'm;
+    type MetaType<'m>: serde::Serialize
+    where
+        Self: 'm;
 
     fn listened_at(&self) -> i64;
 

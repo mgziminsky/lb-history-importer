@@ -88,6 +88,4 @@ fn test_de_list_safe() {
 
 #[test]
 #[should_panic(expected = "missing field")]
-fn test_de_list_fail() {
-    serde_json::from_str::<Vec<Listen>>(LIST_SAMPLE!().as_str()).expect("");
-}
+fn test_de_list_fail() { serde_json::from_str::<Vec<Listen>>(LIST_SAMPLE!().as_str()).expect(""); }

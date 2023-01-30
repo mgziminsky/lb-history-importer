@@ -33,8 +33,7 @@ mod fields;
 pub(super) fn derive_payload(input: DeriveInput) -> Result<TokenStream> {
     let fields = match input.data {
         Data::Struct(DataStruct {
-            fields: Fields::Named(fields),
-            ..
+            fields: Fields::Named(fields), ..
         }) => fields.named,
         _ => return Err(syn::Error::new(input.ident.span(), "this derive macro only works on structs with named fields")),
     };
