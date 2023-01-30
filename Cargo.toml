@@ -16,4 +16,4 @@ license = "LGPL-3.0-or-later"
 listenbrainz = "0.6.0"
 
 [patch.crates-io]
-listenbrainz = { path = "../listenbrainz-rs" }
+listenbrainz = { git = "https://github.com/mgziminsky/listenbrainz-rs", branch = "generic" }

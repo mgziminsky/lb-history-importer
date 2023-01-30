@@ -532,6 +532,7 @@ checksum = "f051f77a7c8e6957c0696eac88f26b0117e54f52d3fc682ab19397a8812846a4"
 [[package]]
 name = "listenbrainz"
 version = "0.6.0"
+source = "git+https://github.com/mgziminsky/listenbrainz-rs?branch=generic#7b16f5eddbe4181dafe152392d81e7d5dac560c4"
 dependencies = [
  "attohttpc",
  "serde",
