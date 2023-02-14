@@ -531,8 +531,9 @@ checksum = "f051f77a7c8e6957c0696eac88f26b0117e54f52d3fc682ab19397a8812846a4"
 
 [[package]]
 name = "listenbrainz"
-version = "0.6.0"
-source = "git+https://github.com/mgziminsky/listenbrainz-rs?branch=generic#7b16f5eddbe4181dafe152392d81e7d5dac560c4"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9fe631e96600ebb10d5fbcf28f30dab10bf75487c8114017c545b2647267bee5"
 dependencies = [
  "attohttpc",
  "serde",

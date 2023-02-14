@@ -13,7 +13,4 @@ edition = "2021"
 license = "LGPL-3.0-or-later"
 
 [workspace.dependencies]
-listenbrainz = "0.6.0"
-
-[patch.crates-io]
-listenbrainz = { git = "https://github.com/mgziminsky/listenbrainz-rs", branch = "generic" }
+listenbrainz = "0.7.0"
